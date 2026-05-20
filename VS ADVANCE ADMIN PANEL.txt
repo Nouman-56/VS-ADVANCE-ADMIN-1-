@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VIRAL STREET | Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; font-family: 'Inter', sans-serif; color: #ffffff; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #e50914; margin-bottom: 30px; text-align: center; }
+        h2, h3, h4 { color: #e50914; margin-bottom: 15px; margin-top: 20px; }
+        .admin-card { background: #151515; border-radius: 16px; padding: 25px; margin-bottom: 30px; border: 1px solid rgba(229,9,20,0.3); }
+        input, select, textarea { width: 100%; background: #2a2a2a; border: 1px solid #3d3d3d; border-radius: 10px; padding: 12px; color: white; margin-bottom: 12px; outline: none; }
+        input:focus, select:focus, textarea:focus { border-color: #e50914; }
+        button { background: #e50914; border: none; color: white; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        button:hover { opacity: 0.9; transform: scale(1.02); }
+        .login-box { max-width: 400px; margin: 100px auto; text-align: center; }
+        .movie-list, .slider-list, .users-list, .categories-list, .blocked-users-list, .networks-list { margin-top: 15px; max-height: 500px; overflow-y: auto; }
+        .movie-item, .slider-item, .user-item, .category-item, .blocked-user-item, .network-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #3d3d3d; gap: 15px; flex-wrap: wrap; background: #1a1a1a; margin-bottom: 5px; border-radius: 10px; }
+        .movie-item:hover, .slider-item:hover, .user-item:hover, .category-item:hover, .blocked-user-item:hover, .network-item:hover { background: #222; }
+        .movie-info { flex: 2; min-width: 200px; }
+        .movie-info strong { color: #e50914; font-size: 16px; }
+        .badges-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .badge-checkbox { display: flex; align-items: center; gap: 6px; background: #2a2a2a; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .badge-checkbox:hover { background: #3a3a3a; transform: scale(1.02); }
+        .badge-checkbox input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+        .badge-checkbox.trending { border-left: 3px solid #2ecc71; }
+        .badge-checkbox.upcoming { border-left: 3px solid #f39c12; }
+        .badge-checkbox.featured { border-left: 3px solid #e50914; }
+        .edit-btn { background: #3498db; border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-size: 12px; }
+        .delete-btn { background: rgba(229,9,20,0.3); border: 1px solid #e50914; color: #e50914; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .activate-membership-btn { background: #2ecc71; border: none; color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .deactivate-membership-btn { background: rgba(229,9,20,0.3); border: 1px solid #e50914; color: #e50914; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .edit-btn:hover, .delete-btn:hover, .activate-membership-btn:hover, .deactivate-membership-btn:hover { transform: scale(1.02); }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.95); color: white; padding: 12px 28px; border-radius: 40px; z-index: 4000; animation: fadeInOut 2.5s ease; border-left: 4px solid #e50914; }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(20px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #151515; border-radius: 16px; padding: 25px; width: 90%; max-width: 500px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-modal { background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; }
+        .close-modal:hover { color: #e50914; }
+        .row { display: flex; gap: 12px; }
+        .row > * { flex: 1; }
+        .badge-sample { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-left: 10px; }
+        .badge-trending { background: #2ecc71; color: white; }
+        .badge-upcoming { background: #f39c12; color: white; }
+        .badge-featured { background: #e50914; color: white; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: linear-gradient(135deg, #1a1a1a, #0d0d0d); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid rgba(229,9,20,0.3); }
+        .stat-card i { font-size: 36px; color: #e50914; margin-bottom: 10px; }
+        .stat-card .stat-number { font-size: 32px; font-weight: 800; color: #FFD700; }
+        .stat-card .stat-label { font-size: 14px; color: #888; margin-top: 5px; }
+        
+        .stats-calendar-card {
+            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(229,9,20,0.3);
+        }
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .date-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .date-filter input, .date-filter select {
+            background: #2a2a2a;
+            border: 1px solid #3d3d3d;
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: white;
+            cursor: pointer;
+        }
+        .range-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .range-btn {
+            background: #2a2a2a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .range-btn.active {
+            background: #e50914;
+        }
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card-small {
+            background: #151515;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border-left: 3px solid #e50914;
+        }
+        .stat-card-small .number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #FFD700;
+        }
+        .stat-card-small .label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .stats-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .stats-table th, .stats-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .stats-table th {
+            color: #e50914;
+            font-weight: 600;
+        }
+        .stats-table tr:hover {
+            background: #1a1a1a;
+        }
+        .chart-container {
+            margin-top: 25px;
+            padding: 20px;
+            background: #151515;
+            border-radius: 12px;
+        }
+        canvas { max-height: 300px; }
+        
+        .current-note-display { background: #2a2a2a; border-radius: 10px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #e50914; }
+        .current-note-title { color: #FFD700; font-weight: 600; font-size: 16px; margin-bottom: 5px; }
+        .current-note-message { color: #ccc; font-size: 13px; }
+        .empty-note { color: #888; font-style: italic; }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .logout-btn {
+            background: #e50914;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-btn:hover {
+            background: #ff1a1a;
+            transform: scale(1.02);
+        }
+        
+        .admin-footer {
+            text-align: center;
+            padding: 25px 20px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(229,9,20,0.3);
+            color: #888;
+            font-size: 14px;
+        }
+        .admin-footer .copyright { color: #e50914; font-weight: 600; letter-spacing: 1px; }
+        .admin-footer .rights { margin-top: 5px; font-size: 12px; }
+        
+        /* Chat Styles in Admin */
+        .chat-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .chat-stat-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        .chat-stat-card .number {
+            font-size: 24px;
+            font-weight: 800;
+            color: #FFD700;
+        }
+        .chat-messages-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .chat-message-item {
+            background: #1a1a1a;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #e50914;
+        }
+        
+        /* Network Badge Styles */
+        .network-badge-zone { background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+        .network-badge-script { background: #9b59b6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+        .network-badge-direct { background: #2ecc71; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+        
+        /* Live Users Card */
+        .live-users-card {
+            background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(229,9,20,0.3);
+        }
+        .live-users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .live-count {
+            font-size: 48px;
+            font-weight: 800;
+            color: #e50914;
+        }
+        .visitor-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-new { background: #2ecc71; color: white; }
+        .badge-returning { background: #3498db; color: white; }
+        .live-users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .live-user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 768px) { 
+            .row { flex-direction: column; } 
+            .movie-item { flex-direction: column; align-items: flex-start; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .stats-header { flex-direction: column; align-items: stretch; }
+            .date-filter { flex-direction: column; }
+            .admin-header { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection" class="login-box">
+            <div class="admin-card">
+                <h2><i class="fas fa-lock"></i> Admin Login</h2>
+                <input type="email" id="adminEmail" placeholder="Admin Email" style="margin-bottom: 10px;">
+                <input type="password" id="adminPassword" placeholder="Enter Admin Password">
+                <button id="loginBtn">Login</button>
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(229,9,20,0.2);">
+                    <p style="color: #e50914; font-size: 12px; font-weight: 500;">© 2024 ViralStreet69.online</p>
+                    <p style="color: #666; font-size: 10px; margin-top: 5px;">All Rights Reserved.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="adminSection" style="display: none;">
+            <div class="admin-header">
+                <h1><i class="fas fa-cog"></i> VIRAL STREET - Admin Panel</h1>
+                <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+            
+            <!-- Stats Dashboard -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <i class="fas fa-users"></i>
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-user-check"></i>
+                    <div class="stat-number" id="activeUsers">0</div>
+                    <div class="stat-label">Active Users (Today)</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-chart-line"></i>
+                    <div class="stat-number" id="totalAdClicks">0</div>
+                    <div class="stat-label">Total Ad Clicks</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-crown"></i>
+                    <div class="stat-number" id="activeMemberships">0</div>
+                    <div class="stat-label">Active Memberships</div>
+                </div>
+            </div>
+            
+            <!-- ========== LIVE USERS & VISITOR STATS SECTION ========== -->
+            <div class="live-users-card">
+                <h3><i class="fas fa-users"></i> 👥 Live Users & Visitor Statistics</h3>
+                
+                <div class="live-users-header">
+                    <div>
+                        <span class="live-count" id="liveUsersCount">0</span>
+                        <span style="color: #888;">Active Now</span>
+                    </div>
+                    <div>
+                        <button id="refreshLiveUsersBtn" class="range-btn" style="background: #3498db;">🔄 Refresh</button>
+                    </div>
+                </div>
+                
+                <div class="stats-summary" style="margin-bottom: 20px;">
+                    <div class="stat-card-small">
+                        <div class="number" id="totalUniqueVisitors">0</div>
+                        <div class="label">Total Unique Visitors (All Time)</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="number" id="totalReturningVisitors">0</div>
+                        <div class="label">Total Returning Visitors</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="number" id="livePeakToday">0</div>
+                        <div class="label">Peak Live Users Today</div>
+                    </div>
+                </div>
+                
+                <h4>📋 Currently Active Users</h4>
+                <div id="liveUsersList" class="live-users-list">
+                    <div style="text-align:center; padding:20px; color:#666;">Loading live users...</div>
+                </div>
+            </div>
+            
+            <!-- Visitor Statistics Section (Daily Stats) -->
+            <div class="stats-calendar-card">
+                <h3><i class="fas fa-chart-line"></i> 📊 Daily Visitor Statistics</h3>
+                
+                <div class="stats-header">
+                    <div class="date-filter">
+                        <input type="date" id="startDate" placeholder="Start Date">
+                        <input type="date" id="endDate" placeholder="End Date">
+                        <button id="applyDateFilterBtn" class="range-btn" style="background: #e50914;">Apply Filter</button>
+                    </div>
+                    <div class="range-buttons">
+                        <button class="range-btn" data-range="today">Today</button>
+                        <button class="range-btn" data-range="yesterday">Yesterday</button>
+                        <button class="range-btn" data-range="week">Last 7 Days</button>
+                        <button class="range-btn" data-range="month">Last 30 Days</button>
+                        <button class="range-btn" data-range="year">Last 12 Months</button>
+                    </div>
+                </div>
+                
+                <div class="stats-summary" id="statsSummary">
+                    <div class="stat-card-small">
+                        <div class="number" id="summaryVisitors">0</div>
+                        <div class="label">Total Visitors</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="number" id="summaryPageViews">0</div>
+                        <div class="label">Page Views</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="number" id="summaryUnique">0</div>
+                        <div class="label">Unique Visitors</div>
+                    </div>
+                    <div class="stat-card-small">
+                        <div class="number" id="summaryAuth">0</div>
+                        <div class="label">Login/Signup Views</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="statsChart"></canvas>
+                </div>
+                
+                <div class="stats-table-container">
+                    <table class="stats-table" id="statsTable">
+                        <thead>
+                            <tr><th>Date</th><th>Visitors</th><th>Page Views</th><th>Unique</th><th>Auth Views</th></tr>
+                        </thead>
+                        <tbody id="statsTableBody"><tr><td colspan="5">Loading statistics...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- ========== AD NETWORKS MANAGEMENT SECTION ========== -->
+            <div class="admin-card">
+                <h3><i class="fas fa-ad"></i> 🚀 Ad Networks Manager (Supabase)</h3>
+                <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                    Add unlimited ad networks. <strong>3 Types:</strong> Zone ID, Script, Direct Link.
+                    Each network will show after specified number of user clicks (0 = immediate).
+                </p>
+                
+                <!-- Add New Network Form -->
+                <div style="background: #1a1a1a; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> Add New Ad Network</h4>
+                    <div class="row">
+                        <input type="text" id="newNetworkName" placeholder="Network Name (e.g., ExoClick, RichAds)" style="flex: 2;">
+                        <select id="newNetworkType" style="flex: 1;">
+                            <option value="zone">📡 Zone ID</option>
+                            <option value="script">📜 Script Code</option>
+                            <option value="direct">🔗 Direct Link URL</option>
+                        </select>
+                    </div>
+                    <div id="dynamicNetworkField">
+                        <input type="text" id="newNetworkValue" placeholder="Enter Zone ID (e.g., 5927504)">
+                        <small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">💡 Zone ID: Sirf number | Script: Paste complete &lt;script&gt; tag | Direct Link: Full URL</small>
+                    </div>
+                    <div class="row">
+                        <input type="number" id="newNetworkAfterClicks" placeholder="After Clicks (0 = immediate)" value="0" style="flex: 1;">
+                        <button id="addNetworkBtn" style="background: #2ecc71; flex: 1;">+ Add Network</button>
+                    </div>
+                </div>
+                
+                <h4><i class="fas fa-list"></i> Active Ad Networks</h4>
+                <div id="networksList" class="networks-list"></div>
+            </div>
+            
+            <!-- POPUP NOTE MANAGER SECTION -->
+            <div class="admin-card">
+                <h3><i class="fas fa-bell"></i> 📢 Popup Notification Manager</h3>
+                <p style="color: #888; font-size: 12px; margin-bottom: 15px;">Users will see this popup when they visit the site. Click "Remove Note" to stop showing.</p>
+                
+                <div id="currentNoteDisplay" class="current-note-display">
+                    <div class="current-note-title"><i class="fas fa-bell"></i> Current Active Note:</div>
+                    <div id="currentNoteStatus" class="empty-note">No active note</div>
+                </div>
+                
+                <input type="text" id="popupNoteTitle" placeholder="Popup Title" style="margin-bottom: 10px;">
+                <textarea id="popupNoteMessage" rows="3" placeholder="Write your announcement/message here..." style="margin-bottom: 10px;"></textarea>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="savePopupNoteBtn" style="background: #2ecc71;">📝 Add / Update Note</button>
+                    <button id="removePopupNoteBtn" style="background: #e50914;">🗑️ Remove Note</button>
+                </div>
+            </div>
+            
+            <!-- CHAT ROOM MANAGEMENT SECTION -->
+            <div class="admin-card">
+                <h3><i class="fas fa-comments"></i> 💬 Chat Room Management</h3>
+                <p style="color: #888; font-size: 12px; margin-bottom: 15px;">Manage chat messages and block/unblock users from chatting.</p>
+                
+                <div class="chat-stats">
+                    <div class="chat-stat-card"><div class="number" id="totalChatMessages">0</div><div class="label">Total Messages</div></div>
+                    <div class="chat-stat-card"><div class="number" id="totalChatUsers">0</div><div class="label">Unique Chatters</div></div>
+                    <div class="chat-stat-card"><div class="number" id="blockedUsersCount">0</div><div class="label">Blocked Users</div></div>
+                </div>
+                
+                <div class="row">
+                    <input type="text" id="blockUsernameInput" placeholder="Enter username to block" style="flex: 2;">
+                    <button id="blockUserBtn" style="background: #e50914;">🚫 Block User</button>
+                </div>
+                
+                <div id="blockedUsersList" class="blocked-users-list" style="margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px;">🚫 Blocked Users</h4>
+                    <div id="blockedUsersContainer"></div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h4>📝 Recent Chat Messages</h4>
+                    <div id="chatMessagesListAdmin" class="chat-messages-list"></div>
+                    <button id="refreshChatBtn" style="margin-top: 10px; background: #3498db;">🔄 Refresh Messages</button>
+                </div>
+            </div>
+            
+            <!-- Manage Users Section -->
+            <div class="admin-card">
+                <h3><i class="fas fa-users-gear"></i> 👥 Manage Users</h3>
+                <div class="row">
+                    <input type="text" id="searchUserInput" placeholder="Search by username or email...">
+                    <button id="searchUserBtn" style="background: #3498db;">🔍 Search</button>
+                    <button id="refreshUsersBtn" style="background: #2ecc71;">🔄 Refresh</button>
+                </div>
+                <div id="usersList" class="users-list"></div>
+            </div>
+            
+            <!-- CATEGORY MANAGEMENT SECTION -->
+            <div class="admin-card">
+                <h3><i class="fas fa-tags"></i> 🏷️ Manage Categories</h3>
+                <p style="color: #888; font-size: 12px; margin-bottom: 15px;">Add new categories to organize your videos. These will appear in frontend category bar.</p>
+                
+                <div class="row">
+                    <input type="text" id="newCategoryName" placeholder="New Category Name" style="flex: 3;">
+                    <button id="addCategoryBtn" style="background: #2ecc71;">+ Add Category</button>
+                </div>
+                <div id="categoriesList" class="categories-list"></div>
+            </div>
+            
+            <!-- Add New Video Section -->
+            <div class="admin-card">
+                <h3><i class="fas fa-plus-circle"></i> ➕ Add New Video</h3>
+                <div class="row">
+                    <input type="text" id="newTitle" placeholder="Video Title *">
+                    <input type="text" id="newYear" placeholder="Year *">
+                </div>
+                <select id="newCategory"></select>
+                <input type="text" id="newThumb" placeholder="Thumbnail URL *">
+                <input type="text" id="newVideoUrl" placeholder="Video URL *">
+                <input type="text" id="newDownloadUrl" placeholder="Download URL (optional)">
+                <input type="number" id="newViews" placeholder="Initial Views" value="0">
+                <button id="addVideoBtn">+ Add Video</button>
+            </div>
+            
+            <!-- Manage Videos Section -->
+            <div class="admin-card">
+                <h3><i class="fas fa-tags"></i> 🏷️ Manage Videos - Status & Actions</h3>
+                <p style="color: #888; font-size: 12px; margin-bottom: 15px;">
+                    <span class="badge-sample badge-trending">🔥 Trending</span> | <span class="badge-sample badge-upcoming">📅 Upcoming</span> | <span class="badge-sample badge-featured">⭐ Featured</span>
+                </p>
+                <div id="adminVideoList" class="movie-list"></div>
+            </div>
+            
+            <!-- Manage Slider Images Section -->
+            <div class="admin-card">
+                <h3><i class="fas fa-images"></i> 🖼️ Manage Slider Images</h3>
+                <div class="row">
+                    <input type="text" id="sliderImgUrl" placeholder="Slider Image URL">
+                    <input type="text" id="sliderTitle" placeholder="Slider Title">
+                </div>
+                <textarea id="sliderDesc" rows="2" placeholder="Description"></textarea>
+                <button id="addSliderBtn">+ Add Slide</button>
+                <div id="sliderListAdmin" class="slider-list"></div>
+            </div>
+            
+            <!-- Membership Button URL Management Section -->
+            <div class="admin-card">
+                <h3><i class="fas fa-crown"></i> 👑 Membership Button URL</h3>
+                <input type="text" id="membershipUrl" placeholder="Enter Membership URL" style="width: 100%;">
+                <button id="saveMembershipUrlBtn" style="margin-top: 5px; background: #e50914;">💾 Save Membership URL</button>
+                <div id="currentMembershipUrl" style="margin-top: 15px; padding: 12px; background: #2a2a2a; border-radius: 10px;">
+                    <small style="color: #888;">Current URL: </small>
+                    <span id="currentMembershipUrlDisplay" style="color: #FFD700; word-break: break-all;">Not set</span>
+                </div>
+            </div>
+            
+            <!-- Edit Video Modal -->
+            <div id="editModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Edit Video</h3>
+                        <button class="close-modal" onclick="closeEditModal()">&times;</button>
+                    </div>
+                    <input type="text" id="editVideoId" style="display: none;">
+                    <input type="text" id="editTitle" placeholder="Video Title">
+                    <input type="text" id="editYear" placeholder="Year">
+                    <select id="editCategory"></select>
+                    <input type="text" id="editThumb" placeholder="Thumbnail URL">
+                    <input type="text" id="editVideoUrl" placeholder="Video URL">
+                    <input type="text" id="editDownloadUrl" placeholder="Download URL">
+                    <input type="number" id="editViews" placeholder="Views Count">
+                    <button id="saveEditBtn">💾 Save Changes</button>
+                </div>
+            </div>
+            
+            <div class="admin-footer">
+                <div class="copyright">© 2024 ViralStreet69.online</div>
+                <div class="rights">All Rights Reserved. | Premium Entertainment Platform</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== SUPABASE SETUP ==========
+        const SUPABASE_URL = 'https://gbbugdhizwrrmrvtytec.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiYnVnZGhpendycm1ydnR5dGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3ODEyMTEsImV4cCI6MjA5NDM1NzIxMX0.S5Lp7tyzCjIvFQovX0ntNhgc81KW5MNUoH5CHFZQdxU';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // ========== FIREBASE SETUP ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyDLloBWMeIB62CYFjxx_2DPicV9im6wFiI",
+            authDomain: "viralstreet-c0128.firebaseapp.com",
+            projectId: "viralstreet-c0128",
+            storageBucket: "viralstreet-c0128.firebasestorage.app",
+            messagingSenderId: "436825511768",
+            appId: "1:436825511768:web:1456b6b669c2b00222f72d"
+        };
+        
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        
+        let currentVideos = [], currentSlides = [], isAdminLoggedIn = false;
+        let currentMembershipUrl = "";
+        let allUsers = [];
+        let statsChart = null;
+        let statsUnsubscribe = null;
+        let usersUnsubscribe = null;
+        let categoriesList = [];
+        let chatMessages = [];
+        let blockedUsers = [];
+        let adNetworks = [];
+        let liveUsersInterval = null;
+        
+        // Default categories
+        const defaultCategories = [
+            { id: 'all', name: 'All', is_default: true },
+            { id: 'premium', name: '🔥 Premium', is_default: true },
+            { id: 'indian', name: '🇮🇳 Indian', is_default: true },
+            { id: 'pakistani', name: '🇵🇰 Pakistani', is_default: true }
+        ];
+        
+        function showToast(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.background = isError ? 'rgba(229,9,20,0.95)' : 'rgba(0,0,0,0.95)';
+            toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2800);
+        }
+        
+        function escapeHtml(text) { if (!text) return ''; const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+        function formatViews(views) { if (!views) return "0 views"; if (views >= 1e6) return (views/1e6).toFixed(1)+"M"; if (views >= 1e3) return (views/1e3).toFixed(1)+"K"; return views+" views"; }
+        
+        function formatDate(date) {
+            if (!date) return 'N/A';
+            try {
+                let d = (date && typeof date.toDate === 'function') ? date.toDate() : new Date(date);
+                return d.toLocaleDateString();
+            } catch(e) { return 'N/A'; }
+        }
+        
+        // ========== LIVE USERS & VISITOR STATS FUNCTIONS ==========
+        async function loadLiveUsers() {
+            try {
+                // Clean old sessions first
+                await supabaseClient.rpc('clean_old_sessions');
+                
+                const { data, error } = await supabaseClient
+                    .from('live_users')
+                    .select('*')
+                    .order('last_active', { ascending: false });
+                
+                if (error) throw error;
+                
+                const liveCount = data ? data.length : 0;
+                document.getElementById('liveUsersCount').textContent = liveCount;
+                
+                // Render live users list
+                const container = document.getElementById('liveUsersList');
+                if (data && data.length > 0) {
+                    container.innerHTML = data.map(user => `
+                        <div class="live-user-item">
+                            <div>
+                                <strong style="color: #e50914;">${escapeHtml(user.session_id.substring(0, 12))}...</strong>
+                                <span class="visitor-badge ${user.visitor_type === 'new' ? 'badge-new' : 'badge-returning'}">
+                                    ${user.visitor_type === 'new' ? '🆕 New' : '🔄 Returning'}
+                                </span>
+                                ${user.user_id ? '<span style="color: #2ecc71; font-size: 11px;">👑 Logged In</span>' : '<span style="color: #888; font-size: 11px;">👤 Guest</span>'}
+                            </div>
+                            <div style="color: #888; font-size: 11px;">
+                                Last active: ${new Date(user.last_active).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No active users</div>';
+                }
+                
+                // Load total visitor stats
+                await loadTotalVisitorStats();
+                
+            } catch (error) {
+                console.error('Error loading live users:', error);
+            }
+        }
+        
+        async function loadTotalVisitorStats() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('visitor_stats')
+                    .select('*')
+                    .order('date', { ascending: false })
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                // Get totals from all time
+                const { data: allStats } = await supabaseClient
+                    .from('visitor_stats')
+                    .select('unique_visitors, returning_visitors');
+                
+                let totalUnique = 0;
+                let totalReturning = 0;
+                if (allStats) {
+                    totalUnique = allStats.reduce((sum, s) => sum + (s.unique_visitors || 0), 0);
+                    totalReturning = allStats.reduce((sum, s) => sum + (s.returning_visitors || 0), 0);
+                }
+                
+                document.getElementById('totalUniqueVisitors').textContent = totalUnique.toLocaleString();
+                document.getElementById('totalReturningVisitors').textContent = totalReturning.toLocaleString();
+                
+                // Get today's peak live users
+                const today = new Date().toISOString().split('T')[0];
+                const { data: todayStats } = await supabaseClient
+                    .from('visitor_stats')
+                    .select('live_peak')
+                    .eq('date', today)
+                    .single();
+                
+                document.getElementById('livePeakToday').textContent = todayStats?.live_peak || 0;
+                
+            } catch (error) {
+                console.error('Error loading total visitor stats:', error);
+            }
+        }
+        
+        // ========== AD NETWORKS MANAGEMENT ==========
+        async function loadAdNetworks() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ad_networks')
+                    .select('*')
+                    .order('after_clicks', { ascending: true });
+                
+                if (error) throw error;
+                adNetworks = data || [];
+                renderNetworksList();
+                console.log('✅ Loaded', adNetworks.length, 'ad networks from Supabase');
+            } catch (error) {
+                console.error('Error loading ad networks:', error);
+                adNetworks = [];
+                renderNetworksList();
+            }
+        }
+        
+        async function addAdNetwork() {
+            const name = document.getElementById('newNetworkName').value.trim();
+            const type = document.getElementById('newNetworkType').value;
+            const value = document.getElementById('newNetworkValue').value.trim();
+            const afterClicks = parseInt(document.getElementById('newNetworkAfterClicks').value) || 0;
+            
+            if (!name || !value) {
+                showToast('Please fill all fields!', true);
+                return;
+            }
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('ad_networks')
+                    .insert([{
+                        name: name,
+                        type: type,
+                        value: value,
+                        after_clicks: afterClicks,
+                        active: true,
+                        created_at: new Date().toISOString()
+                    }]);
+                
+                if (error) throw error;
+                showToast(`✅ Ad network "${name}" added successfully!`);
+                document.getElementById('newNetworkName').value = '';
+                document.getElementById('newNetworkValue').value = '';
+                document.getElementById('newNetworkAfterClicks').value = '0';
+                await loadAdNetworks();
+            } catch (error) {
+                showToast('Error adding network: ' + error.message, true);
+            }
+        }
+        
+        async function toggleNetworkStatus(id, currentStatus) {
+            try {
+                const { error } = await supabaseClient
+                    .from('ad_networks')
+                    .update({ active: !currentStatus })
+                    .eq('id', id);
+                if (error) throw error;
+                showToast(`✅ Network status updated!`);
+                await loadAdNetworks();
+            } catch (error) {
+                showToast('Error updating status: ' + error.message, true);
+            }
+        }
+        
+        async function deleteAdNetwork(id, name) {
+            if (!confirm(`Delete ad network "${name}"?`)) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('ad_networks')
+                    .delete()
+                    .eq('id', id);
+                if (error) throw error;
+                showToast(`✅ Ad network "${name}" deleted!`);
+                await loadAdNetworks();
+            } catch (error) {
+                showToast('Error deleting network: ' + error.message, true);
+            }
+        }
+        
+        function renderNetworksList() {
+            const container = document.getElementById('networksList');
+            if (!container) return;
+            if (adNetworks.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No ad networks added. Add your first network above!</div>';
+                return;
+            }
+            container.innerHTML = adNetworks.map(network => {
+                let typeBadge = '';
+                if (network.type === 'zone') typeBadge = '<span class="network-badge-zone">📡 Zone ID</span>';
+                else if (network.type === 'script') typeBadge = '<span class="network-badge-script">📜 Script</span>';
+                else typeBadge = '<span class="network-badge-direct">🔗 Direct Link</span>';
+                return `
+                <div class="network-item">
+                    <div style="flex: 2;">
+                        <strong style="color: #e50914;">${escapeHtml(network.name)}</strong> ${typeBadge}<br>
+                        <small style="color: #888;">Value: ${escapeHtml(network.value.substring(0, 60))}${network.value.length > 60 ? '...' : ''}</small><br>
+                        <small style="color: #FFD700;">After Clicks: ${network.after_clicks}</small>
+                        ${network.active ? '<small style="color: #2ecc71; margin-left: 10px;">● Active</small>' : '<small style="color: #e50914; margin-left: 10px;">● Inactive</small>'}
+                    </div>
+                    <div class="badges-group">
+                        <button class="edit-btn" onclick="toggleNetworkStatus('${network.id}', ${network.active})">
+                            <i class="fas ${network.active ? 'fa-pause' : 'fa-play'}"></i> ${network.active ? 'Disable' : 'Enable'}
+                        </button>
+                        <button class="delete-btn" onclick="deleteAdNetwork('${network.id}', '${escapeHtml(network.name)}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+        
+        // ========== CHAT MANAGEMENT FUNCTIONS ==========
+        async function loadChatMessages() {
+            try {
+                const { data, error } = await supabaseClient.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(50);
+                if (error) throw error;
+                chatMessages = data || [];
+                renderChatMessagesList();
+                updateChatStats();
+            } catch (error) { console.error('Error loading chat messages:', error); }
+        }
+        
+        async function loadBlockedUsers() {
+            try {
+                const { data, error } = await supabaseClient.from('blocked_users').select('username');
+                if (error) throw error;
+                blockedUsers = data || [];
+                renderBlockedUsersList();
+                document.getElementById('blockedUsersCount').textContent = blockedUsers.length;
+            } catch (error) { console.error('Error loading blocked users:', error); }
+        }
+        
+        async function blockUser() {
+            const username = document.getElementById('blockUsernameInput').value.trim();
+            if (!username) { showToast('Please enter a username to block!', true); return; }
+            if (username === 'admin') { showToast('Cannot block admin user!', true); return; }
+            try {
+                const { error } = await supabaseClient.from('blocked_users').insert([{ username: username }]);
+                if (error) throw error;
+                showToast(`✅ User "${username}" has been blocked from chat!`);
+                document.getElementById('blockUsernameInput').value = '';
+                await loadBlockedUsers();
+                await loadChatMessages();
+            } catch (error) {
+                if (error.message.includes('duplicate')) { showToast(`User "${username}" is already blocked!`, true); }
+                else { showToast('Error blocking user: ' + error.message, true); }
+            }
+        }
+        
+        async function unblockUser(username) {
+            if (!confirm(`Unblock user "${username}"?`)) return;
+            try {
+                const { error } = await supabaseClient.from('blocked_users').delete().eq('username', username);
+                if (error) throw error;
+                showToast(`✅ User "${username}" has been unblocked!`);
+                await loadBlockedUsers();
+                await loadChatMessages();
+            } catch (error) { showToast('Error unblocking user: ' + error.message, true); }
+        }
+        
+        function renderChatMessagesList() {
+            const container = document.getElementById('chatMessagesListAdmin');
+            if (!container) return;
+            if (chatMessages.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No messages yet</div>'; return; }
+            container.innerHTML = chatMessages.map(msg => `
+                <div class="chat-message-item">
+                    <strong style="color: #e50914;">${escapeHtml(msg.username)}</strong>
+                    ${msg.is_premium ? '<span style="background: #FFD700; color: #000; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 5px;">Premium</span>' : ''}
+                    <span style="color: #888; font-size: 11px; margin-left: 10px;">${msg.created_at ? new Date(msg.created_at).toLocaleString() : 'Just now'}</span>
+                    <div style="margin-top: 5px;">${escapeHtml(msg.message)}</div>
+                </div>
+            `).join('');
+        }
+        
+        function renderBlockedUsersList() {
+            const container = document.getElementById('blockedUsersContainer');
+            if (!container) return;
+            if (blockedUsers.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No blocked users</div>'; return; }
+            container.innerHTML = blockedUsers.map(user => `
+                <div class="blocked-user-item">
+                    <div><strong style="color: #e50914;">${escapeHtml(user.username)}</strong></div>
+                    <div class="badges-group">
+                        <button class="delete-btn" onclick="unblockUser('${escapeHtml(user.username)}')">Unblock</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateChatStats() {
+            const uniqueUsers = [...new Set(chatMessages.map(m => m.username))];
+            document.getElementById('totalChatMessages').textContent = chatMessages.length;
+            document.getElementById('totalChatUsers').textContent = uniqueUsers.length;
+        }
+        
+        // ========== CATEGORY MANAGEMENT ==========
+        async function loadCategories() {
+            try {
+                const { data, error } = await supabaseClient.from('categories').select('*').order('name', { ascending: true });
+                if (error) throw error;
+                if (data && data.length > 0) { categoriesList = data; }
+                else {
+                    for (const cat of defaultCategories) {
+                        if (cat.id !== 'all') {
+                            await supabaseClient.from('categories').insert([{ id: cat.id, name: cat.name, is_default: true }]);
+                        }
+                    }
+                    const { data: newData } = await supabaseClient.from('categories').select('*').order('name', { ascending: true });
+                    categoriesList = newData || [];
+                }
+                renderCategoriesList();
+                updateCategoryDropdowns();
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                categoriesList = defaultCategories.filter(c => c.id !== 'all');
+                renderCategoriesList();
+                updateCategoryDropdowns();
+            }
+        }
+        
+        async function addCategory() {
+            const categoryName = document.getElementById('newCategoryName').value.trim();
+            if (!categoryName) { showToast('Please enter a category name!', true); return; }
+            const categoryId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            if (categoriesList.some(c => c.id === categoryId || c.name === categoryName)) { showToast('Category already exists!', true); return; }
+            const { error } = await supabaseClient.from('categories').insert([{ id: categoryId, name: categoryName, is_default: false }]);
+            if (error) { showToast('Error adding category: ' + error.message, true); return; }
+            showToast(`✅ Category "${categoryName}" added!`);
+            document.getElementById('newCategoryName').value = '';
+            await loadCategories();
+        }
+        
+        async function deleteCategory(categoryId, categoryName) {
+            const category = categoriesList.find(c => c.id === categoryId);
+            if (category && category.is_default) { showToast('Cannot delete default categories!', true); return; }
+            if (!confirm(`Delete category "${categoryName}"?`)) return;
+            const { error } = await supabaseClient.from('categories').delete().eq('id', categoryId);
+            if (error) { showToast('Error deleting category: ' + error.message, true); return; }
+            showToast(`✅ Category "${categoryName}" deleted!`);
+            await loadCategories();
+        }
+        
+        function renderCategoriesList() {
+            const container = document.getElementById('categoriesList');
+            if (!container) return;
+            if (categoriesList.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No categories found. Add your first category!</div>'; return; }
+            container.innerHTML = categoriesList.map(cat => `
+                <div class="category-item">
+                    <div style="flex: 1;">
+                        <strong style="color: #e50914;">${escapeHtml(cat.name)}</strong>
+                        <small style="color: #888; margin-left: 10px;">ID: ${cat.id}</small>
+                        ${cat.is_default ? '<small style="color: #2ecc71; margin-left: 10px;">(Default)</small>' : ''}
+                    </div>
+                    <div class="badges-group">
+                        ${!cat.is_default ? `<button class="delete-btn" onclick="deleteCategory('${cat.id}', '${escapeHtml(cat.name)}')"><i class="fas fa-trash"></i> Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateCategoryDropdowns() {
+            const newCatSelect = document.getElementById('newCategory');
+            if (newCatSelect) { newCatSelect.innerHTML = categoriesList.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join(''); }
+            const editCatSelect = document.getElementById('editCategory');
+            if (editCatSelect) { editCatSelect.innerHTML = categoriesList.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join(''); }
+        }
+        
+        // ========== STATS FUNCTIONS ==========
+        function renderStatsTable(data) {
+            const tbody = document.getElementById('statsTableBody');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="5">No data available for selected period</td></tr>'; return; }
+            tbody.innerHTML = data.map(item => `
+                <tr><td>${item.date}</td><td>${item.visitors.toLocaleString()}</td><td>${item.page_views.toLocaleString()}</td><td>${item.unique_visitors.toLocaleString()}</td><td>${item.auth_views.toLocaleString()}</td></tr>
+            `).join('');
+        }
+        
+        function renderStatsChart(data) {
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            if (statsChart) statsChart.destroy();
+            statsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(item => item.date),
+                    datasets: [
+                        { label: 'Visitors', data: data.map(item => item.visitors), borderColor: '#e50914', backgroundColor: 'rgba(229, 9, 20, 0.1)', tension: 0.4, fill: true },
+                        { label: 'Page Views', data: data.map(item => item.page_views), borderColor: '#FFD700', backgroundColor: 'rgba(255, 215, 0, 0.1)', tension: 0.4, fill: true }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    plugins: { legend: { labels: { color: 'white' } } },
+                    scales: { y: { grid: { color: '#333' }, ticks: { color: 'white' } }, x: { grid: { color: '#333' }, ticks: { color: 'white', rotation: 45, maxRotation: 45 } } }
+                }
+            });
+        }
+        
+        function loadStatsRealtime(startDate, endDate) {
+            if (statsUnsubscribe) statsUnsubscribe();
+            let query = db.collection("site_stats");
+            if (startDate && endDate) { query = query.where("date", ">=", startDate).where("date", "<=", endDate); }
+            statsUnsubscribe = query.orderBy("date", "asc").onSnapshot((snapshot) => {
+                const statsData = [];
+                let totalVisitors = 0, totalPageViews = 0, totalUnique = 0, totalAuth = 0;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    statsData.push({ date: data.date, visitors: data.visitors || 0, page_views: data.page_views || 0, unique_visitors: data.unique_visitors || 0, auth_views: data.auth_views || 0 });
+                    totalVisitors += data.visitors || 0;
+                    totalPageViews += data.page_views || 0;
+                    totalUnique += data.unique_visitors || 0;
+                    totalAuth += data.auth_views || 0;
+                });
+                document.getElementById('summaryVisitors').innerHTML = totalVisitors.toLocaleString();
+                document.getElementById('summaryPageViews').innerHTML = totalPageViews.toLocaleString();
+                document.getElementById('summaryUnique').innerHTML = totalUnique.toLocaleString();
+                document.getElementById('summaryAuth').innerHTML = totalAuth.toLocaleString();
+                renderStatsTable(statsData);
+                renderStatsChart(statsData);
+            });
+        }
+        
+        function setDateRange(range) {
+            const today = new Date();
+            const endDate = new Date(today);
+            let startDate = new Date(today);
+            switch(range) {
+                case 'today': break;
+                case 'yesterday': startDate.setDate(startDate.getDate() - 1); endDate.setDate(endDate.getDate() - 1); break;
+                case 'week': startDate.setDate(startDate.getDate() - 7); break;
+                case 'month': startDate.setDate(startDate.getDate() - 30); break;
+                case 'year': startDate.setMonth(startDate.getMonth() - 12); break;
+            }
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDateStr;
+            document.getElementById('endDate').value = endDateStr;
+            loadStatsRealtime(startDateStr, endDateStr);
+        }
+        
+        // ========== POPUP NOTE FUNCTIONS ==========
+        async function loadPopupNote() {
+            try {
+                const doc = await db.collection("popupNotes").doc("activeNote").get();
+                const statusDiv = document.getElementById('currentNoteStatus');
+                if (doc.exists && doc.data().active === true) {
+                    statusDiv.innerHTML = `<div class="current-note-title" style="color:#FFD700;">${escapeHtml(doc.data().title)}</div><div class="current-note-message">${escapeHtml(doc.data().message)}</div><small style="color:#888;">Last updated: ${doc.data().updatedAt ? new Date(doc.data().updatedAt.toDate()).toLocaleString() : 'Recently'}</small>`;
+                    document.getElementById('popupNoteTitle').value = doc.data().title || '';
+                    document.getElementById('popupNoteMessage').value = doc.data().message || '';
+                } else {
+                    statusDiv.innerHTML = '<div class="empty-note">No active note.</div>';
+                    document.getElementById('popupNoteTitle').value = '';
+                    document.getElementById('popupNoteMessage').value = '';
+                }
+            } catch (error) { console.error("Error:", error); }
+        }
+        
+        async function savePopupNote() {
+            const title = document.getElementById('popupNoteTitle').value.trim();
+            const message = document.getElementById('popupNoteMessage').value.trim();
+            if (!title || !message) { showToast('Please enter both title and message!', true); return; }
+            await db.collection("popupNotes").doc("activeNote").set({ title, message, active: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            showToast('✅ Popup note saved!');
+            loadPopupNote();
+        }
+        
+        async function removePopupNote() {
+            await db.collection("popupNotes").doc("activeNote").delete();
+            showToast('✅ Popup note removed!');
+            loadPopupNote();
+        }
+        
+        // ========== USER MANAGEMENT ==========
+        function loadUsersRealtime() {
+            if (usersUnsubscribe) usersUnsubscribe();
+            usersUnsubscribe = db.collection("users").onSnapshot((snapshot) => {
+                allUsers = [];
+                snapshot.forEach(doc => allUsers.push({ id: doc.id, ...doc.data() }));
+                updateStats();
+                renderUsersList();
+            });
+        }
+        
+        function updateStats() {
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            document.getElementById('activeMemberships').textContent = allUsers.filter(u => u.membershipActive === true).length;
+            let totalAdClicks = 0;
+            allUsers.forEach(user => totalAdClicks += (user.adClicks || 0));
+            document.getElementById('totalAdClicks').textContent = totalAdClicks;
+            const today = new Date().toDateString();
+            const activeToday = allUsers.filter(u => u.lastLogin && new Date(u.lastLogin).toDateString() === today).length;
+            document.getElementById('activeUsers').textContent = activeToday;
+        }
+        
+        function renderUsersList(searchTerm = '') {
+            const container = document.getElementById('usersList');
+            let filteredUsers = [...allUsers];
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filteredUsers = filteredUsers.filter(u => (u.username && u.username.toLowerCase().includes(term)) || (u.email && u.email.toLowerCase().includes(term)));
+            }
+            if (filteredUsers.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No users found</div>'; return; }
+            container.innerHTML = filteredUsers.map(user => `
+                <div class="user-item"><div style="flex:2;"><strong style="color:#e50914;">${escapeHtml(user.username)}</strong><br><small>Email: ${escapeHtml(user.email || 'N/A')}</small><br><small>Coins: ${user.coins || 0} | Ad Clicks: ${user.adClicks || 0}</small></div>
+                <div class="badges-group">${!user.membershipActive ? `<button class="activate-membership-btn" onclick="activateMembership('${user.id}', '${escapeHtml(user.username)}')"><i class="fas fa-crown"></i> Give Membership</button>` : `<button class="deactivate-membership-btn" onclick="deactivateMembership('${user.id}', '${escapeHtml(user.username)}')"><i class="fas fa-ban"></i> Remove Membership</button>`}</div></div>
+            `).join('');
+        }
+        
+        async function activateMembership(userId, username) {
+            const expiryDate = new Date(); expiryDate.setMonth(expiryDate.getMonth() + 1);
+            await db.collection("users").doc(userId).update({ membershipActive: true, membershipExpiresAt: expiryDate.toISOString() });
+            showToast(`✅ Membership activated for ${username}!`);
+        }
+        
+        async function deactivateMembership(userId, username) {
+            await db.collection("users").doc(userId).update({ membershipActive: false, membershipExpiresAt: null });
+            showToast(`❌ Membership deactivated for ${username}`);
+        }
+        
+        function searchUsers() { renderUsersList(document.getElementById('searchUserInput').value.trim()); }
+        
+        // ========== MEMBERSHIP URL ==========
+        async function loadMembershipUrl() {
+            const doc = await db.collection("settings").doc("membership").get();
+            currentMembershipUrl = doc.exists ? doc.data().url : "https://www.profitablecpmratenetwork.com/mk65i19v?key=e9f9c255c82dc28e0a257559b623568d";
+            document.getElementById('membershipUrl').value = currentMembershipUrl;
+            document.getElementById('currentMembershipUrlDisplay').textContent = currentMembershipUrl;
+        }
+        
+        async function saveMembershipUrl() {
+            const url = document.getElementById('membershipUrl').value.trim();
+            if (!url) { showToast('Please enter a valid URL!', true); return; }
+            await db.collection("settings").doc("membership").set({ url: url });
+            showToast('✅ Membership URL saved!');
+        }
+        
+        // ========== VIDEOS (SUPABASE) ==========
+        async function loadVideosFromSupabase() {
+            const { data, error } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
+            if (error) { console.error('Error loading videos:', error); return; }
+            currentVideos = data.map(v => ({ id: v.id, title: v.title, year: v.year, category: v.category, thumbnail: v.image_url, videoUrl: v.video_url, downloadUrl: v.download_url, views: v.views, isTrending: v.is_trending, isUpcoming: v.is_upcoming, isFeatured: v.is_featured }));
+            if (isAdminLoggedIn) renderAdminVideoList();
+        }
+        
+        async function addVideoToSupabase() {
+            const title = document.getElementById('newTitle').value.trim();
+            const year = document.getElementById('newYear').value.trim();
+            const category = document.getElementById('newCategory').value;
+            const image_url = document.getElementById('newThumb').value.trim();
+            const video_url = document.getElementById('newVideoUrl').value.trim();
+            const download_url = document.getElementById('newDownloadUrl').value.trim();
+            const views = parseInt(document.getElementById('newViews').value) || 0;
+            if (!title || !year || !image_url || !video_url) { showToast('Please fill all required fields!', true); return; }
+            const { error } = await supabaseClient.from('videos').insert([{ title, year, category, image_url, video_url, download_url, views, is_trending: false, is_upcoming: false, is_featured: false, created_at: new Date().toISOString() }]);
+            if (error) { showToast('Error: ' + error.message, true); return; }
+            showToast(`✅ "${title}" added!`);
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newYear').value = '';
+            document.getElementById('newThumb').value = '';
+            document.getElementById('newVideoUrl').value = '';
+            document.getElementById('newDownloadUrl').value = '';
+            document.getElementById('newViews').value = '0';
+            await loadVideosFromSupabase();
+        }
+        
+        async function updateVideoFlagsSupabase(videoId, field, value) {
+            const supabaseField = field === 'isTrending' ? 'is_trending' : (field === 'isUpcoming' ? 'is_upcoming' : 'is_featured');
+            await supabaseClient.from('videos').update({ [supabaseField]: value }).eq('id', videoId);
+            await loadVideosFromSupabase();
+        }
+        
+        async function deleteVideoFromSupabase(videoId) {
+            if (!confirm('Delete this video?')) return;
+            await supabaseClient.from('videos').delete().eq('id', videoId);
+            showToast('🗑️ Video deleted!');
+            await loadVideosFromSupabase();
+        }
+        
+        function openEditModalSupabase(videoId) {
+            const video = currentVideos.find(v => v.id == videoId);
+            if (video) {
+                document.getElementById('editVideoId').value = videoId;
+                document.getElementById('editTitle').value = video.title;
+                document.getElementById('editYear').value = video.year;
+                document.getElementById('editCategory').value = video.category;
+                document.getElementById('editThumb').value = video.thumbnail;
+                document.getElementById('editVideoUrl').value = video.videoUrl;
+                document.getElementById('editDownloadUrl').value = video.downloadUrl || '';
+                document.getElementById('editViews').value = video.views || 0;
+                document.getElementById('editModal').classList.add('active');
+            }
+        }
+        
+        async function saveEditedVideoSupabase() {
+            const id = document.getElementById('editVideoId').value;
+            const updates = {
+                title: document.getElementById('editTitle').value,
+                year: document.getElementById('editYear').value,
+                category: document.getElementById('editCategory').value,
+                image_url: document.getElementById('editThumb').value,
+                video_url: document.getElementById('editVideoUrl').value,
+                download_url: document.getElementById('editDownloadUrl').value || '',
+                views: parseInt(document.getElementById('editViews').value) || 0
+            };
+            await supabaseClient.from('videos').update(updates).eq('id', id);
+            showToast('✅ Video updated!');
+            closeEditModal();
+            await loadVideosFromSupabase();
+        }
+        
+        function renderAdminVideoList() {
+            const container = document.getElementById('adminVideoList');
+            if (!container) return;
+            if (currentVideos.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No videos found.</div>'; return; }
+            container.innerHTML = currentVideos.map(v => `
+                <div class="movie-item"><div class="movie-info"><strong>${escapeHtml(v.title)}</strong> (${v.year}) - ${v.category}<br><small>👁️ ${formatViews(v.views||0)}</small></div>
+                <div class="badges-group"><label class="badge-checkbox trending"><input type="checkbox" ${v.isTrending ? 'checked' : ''} onchange="updateVideoFlagsSupabase('${v.id}','isTrending',this.checked)"> 🔥 Trending</label>
+                <label class="badge-checkbox upcoming"><input type="checkbox" ${v.isUpcoming ? 'checked' : ''} onchange="updateVideoFlagsSupabase('${v.id}','isUpcoming',this.checked)"> 📅 Upcoming</label>
+                <label class="badge-checkbox featured"><input type="checkbox" ${v.isFeatured ? 'checked' : ''} onchange="updateVideoFlagsSupabase('${v.id}','isFeatured',this.checked)"> ⭐ Featured</label>
+                <button class="edit-btn" onclick="openEditModalSupabase('${v.id}')"><i class="fas fa-edit"></i> Edit</button>
+                <button class="delete-btn" onclick="deleteVideoFromSupabase('${v.id}')"><i class="fas fa-trash"></i> Delete</button></div></div>
+            `).join('');
+        }
+        
+        // ========== SLIDERS (SUPABASE) ==========
+        async function loadSlidersFromSupabase() {
+            const { data, error } = await supabaseClient.from('sliders').select('*').order('order', { ascending: true });
+            if (error) { console.error('Error loading sliders:', error); return; }
+            currentSlides = data;
+            if (isAdminLoggedIn) renderAdminSliderList();
+        }
+        
+        async function addSliderToSupabase() {
+            const image_url = document.getElementById('sliderImgUrl').value.trim();
+            const title = document.getElementById('sliderTitle').value.trim();
+            const description = document.getElementById('sliderDesc').value.trim();
+            if (!image_url || !title || !description) { showToast('Please fill all slider fields!', true); return; }
+            const order = currentSlides.length;
+            await supabaseClient.from('sliders').insert([{ image_url, title, description, badge: "FEATURED", order, created_at: new Date().toISOString() }]);
+            showToast('✅ Slider added!');
+            document.getElementById('sliderImgUrl').value = '';
+            document.getElementById('sliderTitle').value = '';
+            document.getElementById('sliderDesc').value = '';
+            await loadSlidersFromSupabase();
+        }
+        
+        async function deleteSliderFromSupabase(sliderId) {
+            if (!confirm('Delete this slider?')) return;
+            await supabaseClient.from('sliders').delete().eq('id', sliderId);
+            showToast('Slider deleted!');
+            await loadSlidersFromSupabase();
+        }
+        
+        function renderAdminSliderList() {
+            const container = document.getElementById('sliderListAdmin');
+            if (!container) return;
+            if (currentSlides.length === 0) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No sliders added.</div>'; return; }
+            container.innerHTML = currentSlides.map(s => `<div class="slider-item"><span><strong>${escapeHtml(s.title)}</strong><br><small>${s.image_url ? s.image_url.substring(0,40)+'...' : ''}</small></span><button class="delete-btn" onclick="deleteSliderFromSupabase('${s.id}')">Delete</button></div>`).join('');
+        }
+        
+        function closeEditModal() { document.getElementById('editModal').classList.remove('active'); }
+        
+        // ========== LOGOUT FUNCTION ==========
+        function logout() {
+            auth.signOut().then(() => {
+                isAdminLoggedIn = false;
+                if (statsUnsubscribe) statsUnsubscribe();
+                if (usersUnsubscribe) usersUnsubscribe();
+                if (liveUsersInterval) clearInterval(liveUsersInterval);
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('adminSection').style.display = 'none';
+                document.getElementById('adminEmail').value = '';
+                document.getElementById('adminPassword').value = '';
+                showToast('✅ Logged out successfully!');
+            }).catch((error) => { console.error("Logout error:", error); showToast('Error logging out!', true); });
+        }
+        
+        // ========== LOGIN ==========
+        async function login() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            if (!email || !password) { showToast('Please enter email and password!', true); return; }
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                isAdminLoggedIn = true;
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminSection').style.display = 'block';
+                
+                const endDate = new Date().toISOString().split('T')[0];
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 30);
+                document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = endDate;
+                
+                await Promise.all([loadCategories(), loadPopupNote(), loadMembershipUrl(), loadVideosFromSupabase(), loadSlidersFromSupabase(), loadChatMessages(), loadBlockedUsers(), loadAdNetworks(), loadLiveUsers()]);
+                loadUsersRealtime();
+                loadStatsRealtime(startDate.toISOString().split('T')[0], endDate);
+                
+                // Start live users refresh interval (every 10 seconds)
+                if (liveUsersInterval) clearInterval(liveUsersInterval);
+                liveUsersInterval = setInterval(() => { loadLiveUsers(); }, 10000);
+                
+                showToast('✅ Admin access granted! Session will persist on refresh.');
+            } catch (error) {
+                showToast('❌ Invalid credentials!', true);
+            }
+        }
+        
+        // Check existing session on page load
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                isAdminLoggedIn = true;
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminSection').style.display = 'block';
+                
+                const endDate = new Date().toISOString().split('T')[0];
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 30);
+                document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = endDate;
+                
+                await Promise.all([loadCategories(), loadPopupNote(), loadMembershipUrl(), loadVideosFromSupabase(), loadSlidersFromSupabase(), loadChatMessages(), loadBlockedUsers(), loadAdNetworks(), loadLiveUsers()]);
+                loadUsersRealtime();
+                loadStatsRealtime(startDate.toISOString().split('T')[0], endDate);
+                
+                if (liveUsersInterval) clearInterval(liveUsersInterval);
+                liveUsersInterval = setInterval(() => { loadLiveUsers(); }, 10000);
+                
+                showToast('✅ Welcome back, Admin!');
+            }
+        });
+        
+        // ========== EVENT LISTENERS ==========
+        document.getElementById('loginBtn').addEventListener('click', login);
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('addVideoBtn').addEventListener('click', addVideoToSupabase);
+        document.getElementById('addSliderBtn').addEventListener('click', addSliderToSupabase);
+        document.getElementById('saveEditBtn').addEventListener('click', saveEditedVideoSupabase);
+        document.getElementById('saveMembershipUrlBtn').addEventListener('click', saveMembershipUrl);
+        document.getElementById('searchUserBtn').addEventListener('click', searchUsers);
+        document.getElementById('refreshUsersBtn').addEventListener('click', () => loadUsersRealtime());
+        document.getElementById('savePopupNoteBtn').addEventListener('click', savePopupNote);
+        document.getElementById('removePopupNoteBtn').addEventListener('click', removePopupNote);
+        document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+        document.getElementById('blockUserBtn').addEventListener('click', blockUser);
+        document.getElementById('refreshChatBtn').addEventListener('click', () => { loadChatMessages(); loadBlockedUsers(); });
+        document.getElementById('refreshLiveUsersBtn').addEventListener('click', () => { loadLiveUsers(); });
+        document.getElementById('applyDateFilterBtn').addEventListener('click', () => {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            if (startDate && endDate) loadStatsRealtime(startDate, endDate);
+            else showToast('Please select both start and end dates', true);
+        });
+        
+        document.getElementById('addNetworkBtn')?.addEventListener('click', addAdNetwork);
+        
+        document.getElementById('newNetworkType')?.addEventListener('change', function() {
+            const type = this.value;
+            const fieldContainer = document.getElementById('dynamicNetworkField');
+            if(type === 'direct') {
+                fieldContainer.innerHTML = '<input type="url" id="newNetworkValue" placeholder="Direct Link URL (e.g., https://example.com)"><small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">💡 Enter full URL starting with https://</small>';
+            } else if(type === 'script') {
+                fieldContainer.innerHTML = '<textarea id="newNetworkValue" rows="3" placeholder="Paste complete &lt;script&gt; tag here..."></textarea><small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">💡 Example: &lt;script src="https://example.com/zone.js?zoneId=123"&gt;&lt;/script&gt;</small>';
+            } else {
+                fieldContainer.innerHTML = '<input type="text" id="newNetworkValue" placeholder="Enter Zone ID (e.g., 5927504)"><small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">💡 Zone ID: Sirf number</small>';
+            }
+        });
+        
+        document.querySelectorAll('.range-btn[data-range]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setDateRange(btn.getAttribute('data-range'));
+                document.querySelectorAll('.range-btn[data-range]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        
+        document.getElementById('adminPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+        
+        window.updateVideoFlagsSupabase = updateVideoFlagsSupabase;
+        window.deleteVideoFromSupabase = deleteVideoFromSupabase;
+        window.openEditModalSupabase = openEditModalSupabase;
+        window.deleteSliderFromSupabase = deleteSliderFromSupabase;
+        window.closeEditModal = closeEditModal;
+        window.activateMembership = activateMembership;
+        window.deactivateMembership = deactivateMembership;
+        window.deleteCategory = deleteCategory;
+        window.unblockUser = unblockUser;
+        window.toggleNetworkStatus = toggleNetworkStatus;
+        window.deleteAdNetwork = deleteAdNetwork;
+    </script>
+</body>
+</html>
